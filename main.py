@@ -761,7 +761,10 @@ async def resume(interaction: discord.Interaction):
 @bot.tree.command(name="help", description="Show all the commands")
 async def help_command(interaction: discord.Interaction):
     """Show help message with all commands"""
-    help_text = """
+    # Replace with your actual GitHub repository URL
+    github_url = "https://github.com/yourusername/MikuBot"  # Update this!
+    
+    help_text = f"""
 **MikuBot Commands:**
 
 `/join` - Make the bot join your voice channel (Admin only)
@@ -777,45 +780,16 @@ async def help_command(interaction: discord.Interaction):
 `/pause` - Pause the currently playing song
 `/resume` - Resume currently playing song
 `/help` - Show this help message
-`/info` - Show bot information and links
 
 **Notes:**
 - Spotify tracks are automatically searched and played from YouTube
 - The bot supports YouTube playlists and single tracks
 - Queue loop will repeat the entire queue in order
 - Song loop will repeat only the current song
+
+🔗 [GitHub Repository]({github_url})
 """
     await interaction.response.send_message(help_text)
-
-
-@bot.tree.command(name="info", description="Show bot information and links")
-async def info_command(interaction: discord.Interaction):
-    """Show bot information"""
-    # Replace with your actual GitHub repository URL
-    github_url = "https://github.com/yourusername/MikuBot"  # Update this!
-    
-    embed = discord.Embed(
-        title="MikuBot Information",
-        description="A Discord music bot for playing Hatsune Miku and other music!",
-        color=0x39C5BB  # Miku's signature color (cyan)
-    )
-    
-    embed.add_field(
-        name="🔗 GitHub",
-        value=f"[View on GitHub]({github_url})",
-        inline=False
-    )
-    
-    embed.add_field(
-        name="📝 Commands",
-        value="Use `/help` to see all available commands",
-        inline=False
-    )
-    
-    embed.set_footer(text="Made with ❤️ for Miku fans")
-    
-    await interaction.response.send_message(embed=embed)
-
 
 if __name__ == "__main__":
     token = os.getenv('DISCORD_TOKEN')
