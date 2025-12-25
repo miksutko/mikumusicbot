@@ -733,6 +733,32 @@ async def skip(interaction: discord.Interaction):
     await interaction.response.send_message("Skipped!")
 
 
+@bot.tree.command(name="stop", description="Stop playing and leave voice channel")
+async def stop(interaction: discord.Interaction):
+    """Stop playing and disconnect from voice channel"""
+    player = get_music_player(interaction.guild_id)
+    
+    if player.voice_client is None or not player.voice_client.is_connected():
+        await interaction.response.send_message("I'm not in a voice channel!", ephemeral=True)
+        return
+    
+    # Stop playback
+    if player.voice_client.is_playing() or player.voice_client.is_paused():
+        player.voice_client.stop()
+    
+    # Clear queue and disconnect
+    player.clear_queue()
+    player.current = None
+    player.loop_song = False
+    player.loop_queue = False
+    player.original_queue = []
+    player.save_queue()
+    await player.voice_client.disconnect()
+    player.voice_client = None
+    
+    await interaction.response.send_message("Stopped playing and left the voice channel!")
+
+
 @bot.tree.command(name="leave", description="Disconnect from voice")
 async def leave(interaction: discord.Interaction):
     """Disconnect from voice channel"""
@@ -922,6 +948,7 @@ async def help_command(interaction: discord.Interaction):
 `/play <url>` - Play a song from YouTube or Spotify
 `/playmiku` - Play a 24/7 playlist with only Hatsune Miku songs
 `/skip` - Skip the current song (must be in VC)
+`/stop` - Stop playing and leave voice channel
 `/leave` - Disconnect from voice and clear queue
 `/queue` - View current queue
 `/clearqueue` - Clear all tracks from the queue
