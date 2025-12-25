@@ -758,11 +758,62 @@ async def resume(interaction: discord.Interaction):
     await interaction.response.send_message("Resumed!")
 
 
+@bot.tree.command(name="testtenor", description="Test Tenor API connection (Admin only)")
+async def test_tenor(interaction: discord.Interaction):
+    """Test if Tenor API is working (Admin only)"""
+    # Check for admin permissions
+    if not interaction.user.guild_permissions.administrator:
+        await interaction.response.send_message(
+            "You need administrator permissions to use this command.",
+            ephemeral=True
+        )
+        return
+    
+    tenor_key = os.getenv('TENOR_API_KEY')
+    
+    if not tenor_key or tenor_key == "your_tenor_api_key_here":
+        await interaction.response.send_message(
+            "❌ Tenor API key not configured!\n"
+            "Please add `TENOR_API_KEY` to your `.env` file.\n"
+            "Get a free key at: https://developers.google.com/tenor",
+            ephemeral=True
+        )
+        return
+    
+    await interaction.response.defer(ephemeral=True)
+    
+    # Test with a simple search
+    try:
+        import miku_responses
+        gif_url = await miku_responses.get_tenor_gif("hatsune miku", tenor_key)
+        
+        if gif_url:
+            await interaction.followup.send(
+                f"✅ Tenor API is working!\n"
+                f"Found GIF: {gif_url}\n\n"
+                f"Here's a test GIF:",
+                ephemeral=True
+            )
+            await interaction.followup.send(gif_url, ephemeral=True)
+        else:
+            await interaction.followup.send(
+                "⚠️ Tenor API key is set but no GIFs were returned.\n"
+                "This might be a temporary issue or the search term returned no results.",
+                ephemeral=True
+            )
+    except Exception as e:
+        await interaction.followup.send(
+            f"❌ Error testing Tenor API:\n```{str(e)}```\n\n"
+            "Check your API key and try again.",
+            ephemeral=True
+        )
+
+
 @bot.tree.command(name="help", description="Show all the commands")
 async def help_command(interaction: discord.Interaction):
     """Show help message with all commands"""
     # Replace with your actual GitHub repository URL
-    github_url = "https://github.com/yourusername/MikuBot"  # Update this!
+    github_url = "https://github.com/miksutko/mikumusicbot"  # Update this!
     
     help_text = f"""
 **MikuBot Commands:**

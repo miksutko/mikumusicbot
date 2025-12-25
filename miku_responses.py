@@ -8,10 +8,15 @@ import discord
 import aiohttp
 import random
 import re
+import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Tenor API key (free tier available at https://developers.google.com/tenor)
 # You can also use a simple list of GIF URLs if you prefer
-TENOR_API_KEY = None  # Set in .env as TENOR_API_KEY (optional)
+TENOR_API_KEY = os.getenv('TENOR_API_KEY')  # Set in .env as TENOR_API_KEY (optional)
 
 # Fallback GIF URLs if Tenor is not configured
 # Use direct GIF URLs (not page URLs) for best compatibility
