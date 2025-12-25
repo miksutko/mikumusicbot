@@ -9,6 +9,7 @@ A Discord music bot that plays music from YouTube and Spotify, with support for 
 - **Queue Management** - View, clear, and shuffle your queue
 - **Looping** - Loop individual songs or entire playlists
 - **Playback Controls** - Pause, resume, skip, and more
+- **GIF Responses** - Miku responds with GIFs when mentioned or when certain keywords are detected (optional module)
 
 ## Setup
 
@@ -38,6 +39,7 @@ pip install -r requirements.txt
 DISCORD_TOKEN=your_discord_bot_token_here
 SPOTIFY_CLIENT_ID=your_spotify_client_id_here
 SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
+TENOR_API_KEY=your_tenor_api_key_here  # Optional, for GIF responses
 ```
 
 ### Getting Credentials
@@ -81,13 +83,33 @@ python main.py
 - `/resume` - Resume currently playing song
 - `/help` - Show all commands
 
+## Optional: GIF Responses
+
+The bot includes an optional `miku_responses.py` module that makes Miku respond with GIFs when:
+- Someone mentions/pings the bot
+- People talk about Miku
+- Greetings are detected (good morning, hello, etc.)
+- Special occasions (Christmas, etc.)
+
+**To enable:**
+- The module is automatically enabled if `miku_responses.py` exists
+- Optionally add `TENOR_API_KEY` to your `.env` for better GIF selection
+- Get a free Tenor API key at: https://developers.google.com/tenor
+
+**To disable:**
+- Simply delete `miku_responses.py` or comment out the import in `main.py`
+
+**To add custom triggers:**
+- Edit `miku_responses.py` and add entries to the `TRIGGERS` dictionary
+- See the file for examples and easy-to-follow format
+
 ## Notes
 
 - Spotify tracks are automatically searched and played from YouTube
 - The bot supports YouTube playlists and single tracks
 - Queue loop will repeat the entire queue in order
 - Song loop will repeat only the current song
-- Queue is stored in memory (will be cleared on bot restart)
+- Queue is stored in JSON file and persists across bot restarts
 
 ## Troubleshooting
 

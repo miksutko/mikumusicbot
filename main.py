@@ -11,6 +11,15 @@ import random
 import re
 import json
 
+# Optional: Miku GIF responses module
+# To disable this feature, comment out the import and the message handler below
+try:
+    import miku_responses
+    MIKU_RESPONSES_ENABLED = True
+except ImportError:
+    MIKU_RESPONSES_ENABLED = False
+    print("Note: miku_responses module not found. GIF responses disabled.")
+
 load_dotenv()
 
 # Bot setup
@@ -487,6 +496,18 @@ async def on_ready():
         print(f"Failed to sync commands: {e}")
 
 
+@bot.event
+async def on_message(message):
+    """Handle messages for GIF responses"""
+    # Process commands first
+    await bot.process_commands(message)
+    
+    # Handle GIF responses if enabled
+    if MIKU_RESPONSES_ENABLED:
+        tenor_key = os.getenv('TENOR_API_KEY')
+        await miku_responses.handle_message_response(message, bot.user, tenor_key)
+
+
 @bot.tree.command(name="join", description="Join your voice channel")
 @app_commands.describe(channel="The voice channel to join (optional)")
 async def join(interaction: discord.Interaction, channel: discord.VoiceChannel = None):
@@ -756,6 +777,7 @@ async def help_command(interaction: discord.Interaction):
 `/pause` - Pause the currently playing song
 `/resume` - Resume currently playing song
 `/help` - Show this help message
+`/info` - Show bot information and links
 
 **Notes:**
 - Spotify tracks are automatically searched and played from YouTube
@@ -764,6 +786,35 @@ async def help_command(interaction: discord.Interaction):
 - Song loop will repeat only the current song
 """
     await interaction.response.send_message(help_text)
+
+
+@bot.tree.command(name="info", description="Show bot information and links")
+async def info_command(interaction: discord.Interaction):
+    """Show bot information"""
+    # Replace with your actual GitHub repository URL
+    github_url = "https://github.com/yourusername/MikuBot"  # Update this!
+    
+    embed = discord.Embed(
+        title="MikuBot Information",
+        description="A Discord music bot for playing Hatsune Miku and other music!",
+        color=0x39C5BB  # Miku's signature color (cyan)
+    )
+    
+    embed.add_field(
+        name="🔗 GitHub",
+        value=f"[View on GitHub]({github_url})",
+        inline=False
+    )
+    
+    embed.add_field(
+        name="📝 Commands",
+        value="Use `/help` to see all available commands",
+        inline=False
+    )
+    
+    embed.set_footer(text="Made with ❤️ for Miku fans")
+    
+    await interaction.response.send_message(embed=embed)
 
 
 if __name__ == "__main__":
