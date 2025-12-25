@@ -468,12 +468,45 @@ async def get_spotify_track_info(url):
     if not spotify:
         raise Exception("Spotify credentials not configured")
     
+    # Check if it's a playlist
+    if 'playlist' in url:
+        playlist_id = url.split('playlist/')[-1].split('?')[0]
+        if not playlist_id:
+            raise Exception("Invalid Spotify playlist URL")
+        
+        # Get playlist tracks
+        results = spotify.playlist_tracks(playlist_id)
+        tracks = []
+        
+        # Handle pagination
+        while results:
+            for item in results['items']:
+                if item['track'] and item['track']['type'] == 'track':
+                    track = item['track']
+                    artist = track['artists'][0]['name']
+                    title = track['name']
+                    search_query = f"{artist} {title}"
+                    yt_search_url = f"ytsearch:{search_query}"
+                    tracks.append((yt_search_url, f"{artist} - {title}"))
+            
+            # Get next page if available
+            if results['next']:
+                results = spotify.next(results)
+            else:
+                break
+        
+        if not tracks:
+            raise Exception("Playlist is empty or contains no valid tracks")
+        
+        return tracks  # Return list of (yt_url, track_name) tuples
+    
+    # Handle single track
     track_id = None
     if 'track' in url:
         track_id = url.split('track/')[-1].split('?')[0]
     
     if not track_id:
-        raise Exception("Invalid Spotify track URL")
+        raise Exception("Invalid Spotify URL. Please provide a track or playlist URL.")
     
     track = spotify.track(track_id)
     artist = track['artists'][0]['name']
@@ -557,9 +590,76 @@ async def play(interaction: discord.Interaction, url: str):
         # Check if it's Spotify or YouTube
         if 'spotify.com' in url or 'open.spotify.com' in url:
             # Handle Spotify
-            yt_url, track_name = await get_spotify_track_info(url)
-            count = await player.add_to_queue(yt_url, interaction)
-            await interaction.followup.send(f"Added **{track_name}** to queue!")
+            spotify_result = await get_spotify_track_info(url)
+            
+            # Check if it's a playlist (returns list) or single track (returns tuple)
+            if isinstance(spotify_result, list):
+                # Playlist - add first batch and start playing, then continue in background
+                total_tracks = len(spotify_result)
+                await interaction.followup.send(f"Processing **{total_tracks} tracks** from Spotify playlist...")
+                
+                # Process in batches of 5 for better performance
+                batch_size = 5
+                total_added = 0
+                started_playing = False
+                
+                async def add_track_to_queue(yt_url, track_name):
+                    """Helper to add track and handle errors"""
+                    nonlocal total_added
+                    try:
+                        await player.add_to_queue(yt_url, interaction)
+                        total_added += 1
+                        return True
+                    except Exception as e:
+                        print(f"Error adding track {track_name}: {e}")
+                        return False
+                
+                # Add first batch and start playing immediately
+                first_batch = spotify_result[:batch_size]
+                first_batch_tasks = [
+                    asyncio.create_task(add_track_to_queue(yt_url, track_name))
+                    for yt_url, track_name in first_batch
+                ]
+                
+                # Wait for first batch to complete
+                await asyncio.gather(*first_batch_tasks, return_exceptions=True)
+                
+                # Start playing if nothing is playing
+                if not player.voice_client.is_playing() and not player.voice_client.is_paused():
+                    await player.play_next(interaction)
+                    started_playing = True
+                
+                # Continue adding rest in background
+                async def add_remaining_tracks():
+                    nonlocal total_added
+                    for i in range(batch_size, total_tracks, batch_size):
+                        batch = spotify_result[i:i + batch_size]
+                        batch_tasks = [
+                            asyncio.create_task(add_track_to_queue(yt_url, track_name))
+                            for yt_url, track_name in batch
+                        ]
+                        await asyncio.gather(*batch_tasks, return_exceptions=True)
+                    
+                    # Send final update
+                    await interaction.followup.send(
+                        f"✅ Finished! Added **{total_added}/{total_tracks} tracks** from Spotify playlist to queue!",
+                        ephemeral=False
+                    )
+                
+                # Start background task for remaining tracks
+                asyncio.create_task(add_remaining_tracks())
+                
+                # Send immediate feedback
+                if started_playing:
+                    await interaction.followup.send(
+                        f"🎵 Started playing! Adding remaining **{total_tracks - batch_size} tracks** in background...",
+                        ephemeral=False
+                    )
+            else:
+                # Single track
+                yt_url, track_name = spotify_result
+                count = await player.add_to_queue(yt_url, interaction)
+                await interaction.followup.send(f"Added **{track_name}** to queue!")
         elif 'youtube.com' in url or 'youtu.be' in url:
             # Handle YouTube
             count = await player.add_to_queue(url, interaction)
